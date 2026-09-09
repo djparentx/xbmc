@@ -19,6 +19,9 @@
 #include <utility>
 
 #include <gbm.h>
+#include <rga/RgaApi.h>
+
+#define RGA_BUFFERS_MAX (3)
 
 class IDispResource;
 
@@ -92,10 +95,19 @@ protected:
   XbmcThreads::EndTime<> m_dispResetTimer;
   std::unique_ptr<CLibInputHandler> m_libinput;
 
+  void InitRotateBuffer(int frameWidth, int frameHeight);
+  void DestroyRotateBuffer();
+
 private:
   uint32_t m_hdr_blob_id = 0;
 
   std::unique_ptr<UTILS::CDisplayInfo> m_info;
+
+  rga_info_t m_rgaSrcInfo{};
+  rga_info_t m_rgaDstInfo{};
+  struct gbm_bo* m_rgaBuffers[RGA_BUFFERS_MAX]{};
+  int m_rgaBufferFds[RGA_BUFFERS_MAX]{};
+  int m_rgaBufferIndex{0};
 };
 
 }

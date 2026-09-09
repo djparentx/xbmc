@@ -30,6 +30,7 @@
 
 #include <mutex>
 #include <string.h>
+#include <unistd.h>
 
 #ifndef HAVE_HDR_OUTPUT_METADATA
 // HDR structs is copied from linux include/linux/hdmi.h
@@ -172,9 +173,62 @@ bool CWinSystemGbm::DestroyWindowSystem()
 {
   CLog::Log(LOGDEBUG, "CWinSystemGbm::{} - deinitialized DRM", __FUNCTION__);
 
+  DestroyRotateBuffer();
   m_libinput.reset();
 
   return true;
+}
+
+void CWinSystemGbm::InitRotateBuffer(int frameWidth, int frameHeight)
+{
+  DestroyRotateBuffer();
+
+  c_RkRgaInit();
+
+  int l_frameHeight = frameHeight;
+  if (l_frameHeight % 32 != 0)
+    l_frameHeight = (frameHeight + 32) & (~31);
+
+  for (int i = 0; i < RGA_BUFFERS_MAX; ++i)
+  {
+    m_rgaBuffers[i] = gbm_bo_create(m_GBM->GetDevice().Get(), frameWidth, l_frameHeight,
+                                     GBM_FORMAT_XRGB8888, GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
+    m_rgaBufferFds[i] = gbm_bo_get_fd(m_rgaBuffers[i]);
+  }
+  m_rgaBufferIndex = 0;
+
+  m_rgaSrcInfo.fd = -1;
+  m_rgaSrcInfo.mmuFlag = 1;
+  m_rgaSrcInfo.rotation = HAL_TRANSFORM_ROT_270;
+  rga_set_rect(&m_rgaSrcInfo.rect, 0, 0, frameHeight, frameWidth, l_frameHeight, frameWidth,
+               RK_FORMAT_BGRA_8888);
+
+  m_rgaDstInfo.fd = -1;
+  m_rgaDstInfo.mmuFlag = 1;
+  rga_set_rect(&m_rgaDstInfo.rect, 0, 0, frameWidth, frameHeight, frameWidth, frameHeight,
+               RK_FORMAT_BGRA_8888);
+}
+
+void CWinSystemGbm::DestroyRotateBuffer()
+{
+  if (m_rgaSrcInfo.fd >= 0)
+  {
+    close(m_rgaSrcInfo.fd);
+    m_rgaSrcInfo.fd = -1;
+  }
+
+  for (int i = 0; i < RGA_BUFFERS_MAX; ++i)
+  {
+    if (m_rgaBuffers[i])
+    {
+      close(m_rgaBufferFds[i]);
+      gbm_bo_destroy(m_rgaBuffers[i]);
+      m_rgaBuffers[i] = nullptr;
+      m_rgaBufferFds[i] = -1;
+    }
+  }
+
+  c_RkRgaDeInit();
 }
 
 void CWinSystemGbm::UpdateResolutions()
@@ -290,7 +344,16 @@ void CWinSystemGbm::FlipPage(bool rendered, bool videoLayer, bool async)
 
   if (rendered)
   {
-    bo = m_GBM->GetDevice().GetSurface().LockFrontBuffer().Get();
+    struct gbm_bo* render_bo = m_GBM->GetDevice().GetSurface().LockFrontBuffer().Get();
+
+    m_rgaSrcInfo.fd = gbm_bo_get_fd(render_bo);
+    m_rgaDstInfo.fd = m_rgaBufferFds[m_rgaBufferIndex];
+
+    if (c_RkRgaBlit(&m_rgaSrcInfo, &m_rgaDstInfo, nullptr) < 0)
+      CLog::Log(LOGERROR, "CWinSystemGbm::{} - RGA rotate blit failed", __FUNCTION__);
+
+    bo = m_rgaBuffers[m_rgaBufferIndex];
+    m_rgaBufferIndex = (m_rgaBufferIndex + 1) % RGA_BUFFERS_MAX;
   }
 
   m_DRM->FlipPage(bo, rendered, videoLayer, async);

@@ -1,5 +1,7 @@
 add_subdirectory(drm)
 
+find_package(rga REQUIRED)
+
 set(SOURCES OptionalsReg.cpp
             WinSystemGbm.cpp
             VideoSyncGbm.cpp

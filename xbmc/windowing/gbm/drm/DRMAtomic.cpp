@@ -96,8 +96,8 @@ void CDRMAtomic::DrmAtomicCommit(int fb_id, int flags, bool rendered, bool video
     AddProperty(m_gui_plane, "CRTC_ID", m_crtc->GetCrtcId());
     AddProperty(m_gui_plane, "SRC_X", 0);
     AddProperty(m_gui_plane, "SRC_Y", 0);
-    AddProperty(m_gui_plane, "SRC_W", m_width << 16);
-    AddProperty(m_gui_plane, "SRC_H", m_height << 16);
+    AddProperty(m_gui_plane, "SRC_W", m_mode->hdisplay << 16);
+    AddProperty(m_gui_plane, "SRC_H", m_mode->vdisplay << 16);
     AddProperty(m_gui_plane, "CRTC_X", 0);
     AddProperty(m_gui_plane, "CRTC_Y", 0);
     //! @todo: disabled until upstream kernel changes are merged
