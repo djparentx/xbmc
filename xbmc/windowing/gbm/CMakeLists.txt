@@ -26,3 +26,4 @@ if(TARGET OpenGL::GLES)
 endif()
 
 core_add_library(windowing_gbm)
+target_link_libraries(windowing_gbm PRIVATE RGA::RGA)
