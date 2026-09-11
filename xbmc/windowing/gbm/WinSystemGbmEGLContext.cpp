@@ -105,7 +105,7 @@ bool CWinSystemGbmEGLContext::CreateNewWindow(const std::string& name,
     return false;
   }
 
-  InitRotateBuffer(res.iHeight, res.iWidth);
+//  InitRotateBuffer(res.iHeight, res.iWidth);
 
   // This check + the reinterpret cast is for security reason, if the user has outdated platform header files which often is the case
   static_assert(sizeof(EGLNativeWindowType) == sizeof(gbm_surface*), "Declaration specifier differs in size");
