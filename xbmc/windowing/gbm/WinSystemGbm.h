@@ -108,6 +108,7 @@ private:
   struct gbm_bo* m_rgaBuffers[RGA_BUFFERS_MAX]{};
   int m_rgaBufferFds[RGA_BUFFERS_MAX]{};
   int m_rgaBufferIndex{0};
+  bool m_rgaInitialized{false};
 };
 
 }

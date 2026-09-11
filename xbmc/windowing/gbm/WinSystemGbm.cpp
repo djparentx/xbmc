@@ -181,9 +181,11 @@ bool CWinSystemGbm::DestroyWindowSystem()
 
 void CWinSystemGbm::InitRotateBuffer(int frameWidth, int frameHeight)
 {
-  DestroyRotateBuffer();
+  if (m_rgaInitialized)
+    DestroyRotateBuffer();
 
   c_RkRgaInit();
+  m_rgaInitialized = true;
 
   int l_frameHeight = frameHeight;
   if (l_frameHeight % 32 != 0)
@@ -193,6 +195,11 @@ void CWinSystemGbm::InitRotateBuffer(int frameWidth, int frameHeight)
   {
     m_rgaBuffers[i] = gbm_bo_create(m_GBM->GetDevice().Get(), frameWidth, l_frameHeight,
                                      GBM_FORMAT_XRGB8888, GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
+    if (!m_rgaBuffers[i])
+    {
+      CLog::Log(LOGERROR, "CWinSystemGbm::{} - failed to create RGA rotate buffer {}", __FUNCTION__, i);
+      continue;
+    }
     m_rgaBufferFds[i] = gbm_bo_get_fd(m_rgaBuffers[i]);
   }
   m_rgaBufferIndex = 0;
@@ -228,7 +235,11 @@ void CWinSystemGbm::DestroyRotateBuffer()
     }
   }
 
-  c_RkRgaDeInit();
+  if (m_rgaInitialized)
+  {
+    c_RkRgaDeInit();
+    m_rgaInitialized = false;
+  }
 }
 
 void CWinSystemGbm::UpdateResolutions()
