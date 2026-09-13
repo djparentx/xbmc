@@ -94,10 +94,6 @@ bool CWinSystemGbmEGLContext::CreateNewWindow(const std::string& name,
 
   std::vector<uint64_t> modifiers;
 
-  auto plane = m_DRM->GetGuiPlane();
-  if (plane)
-    modifiers = plane->GetModifiersForFormat(format);
-
   if (!m_GBM->GetDevice().CreateSurface(res.iWidth, res.iHeight, format, modifiers.data(),
                                         modifiers.size()))
   {
